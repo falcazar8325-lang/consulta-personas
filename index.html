@@ -117,16 +117,17 @@ footer {
 </main>
 
 <footer>
-  Consulta informativa · Datos actualizados automáticamente
+  Consulta informativa · Datos actualizados automáticamente<br>
+  <span id="lastUpdate"></span>
 </footer>
 
 <script>
-// 🔗 PEGA AQUÍ TU LINK CSV DE GOOGLE SHEETS
+// 🔗 PEGA AQUÍ TU LINK CSV PUBLICADO DESDE GOOGLE SHEETS
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRWRQbiejsRyHimtz4YLWiWo1_bLxyWqioatbRHwryXeVAhUuk8YCiLJXZnDCQgzs21ALGWNKWIAhAz/pub?gid=0&single=true&output=csv";
 
 let data = [];
 
-// 🔹 Función para ignorar tildes y mayúsculas
+// 🔹 Normaliza texto (ignora tildes y mayúsculas)
 function normalizarTexto(texto) {
   return texto
     .toLowerCase()
@@ -134,8 +135,17 @@ function normalizarTexto(texto) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-// 🔹 Cargar datos del Sheet
-fetch(sheetURL)
+// 🔹 Mostrar fecha y hora de actualización
+function mostrarFechaActualizacion() {
+  const ahora = new Date();
+  const fecha = ahora.toLocaleDateString("es-PE");
+  const hora = ahora.toLocaleTimeString("es-PE");
+  document.getElementById("lastUpdate").innerText =
+    "Última actualización: " + fecha + " " + hora;
+}
+
+// 🔹 Cargar datos (ANTI-CACHÉ)
+fetch(sheetURL + "?t=" + new Date().getTime())
   .then(res => res.text())
   .then(text => {
     const rows = text.split("\n").slice(1);
@@ -150,6 +160,7 @@ fetch(sheetURL)
         });
       }
     });
+    mostrarFechaActualizacion();
   });
 
 // 🔍 Buscador
