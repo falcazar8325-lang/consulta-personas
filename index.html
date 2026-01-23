@@ -122,12 +122,12 @@ footer {
 </footer>
 
 <script>
-// 🔗 PEGA AQUÍ TU LINK CSV PUBLICADO DESDE GOOGLE SHEETS
+// 🔗 TU LINK CSV (ESTÁ CORRECTO)
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRWRQbiejsRyHimtz4YLWiWo1_bLxyWqioatbRHwryXeVAhUuk8YCiLJXZnDCQgzs21ALGWNKWIAhAz/pub?gid=0&single=true&output=csv";
 
 let data = [];
 
-// 🔹 Normaliza texto (ignora tildes y mayúsculas)
+// 🔹 Normaliza texto (ignora tildes)
 function normalizarTexto(texto) {
   return texto
     .toLowerCase()
@@ -135,32 +135,51 @@ function normalizarTexto(texto) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-// 🔹 Mostrar fecha y hora de actualización
+// 🔹 Fecha / hora
 function mostrarFechaActualizacion() {
   const ahora = new Date();
-  const fecha = ahora.toLocaleDateString("es-PE");
-  const hora = ahora.toLocaleTimeString("es-PE");
   document.getElementById("lastUpdate").innerText =
-    "Última actualización: " + fecha + " " + hora;
+    "Última actualización: " +
+    ahora.toLocaleDateString("es-PE") +
+    " " +
+    ahora.toLocaleTimeString("es-PE");
+}
+
+// 🔹 PARSER CSV ROBUSTO
+function parseCSV(text) {
+  const rows = text.trim().split(/\r?\n/);
+  rows.shift(); // quitar encabezado
+  return rows.map(row => {
+    const cols = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+    if (!cols || cols.length < 4) return null;
+    return {
+      id: cols[0].replace(/"/g, "").trim(),
+      nombres: cols[1].replace(/"/g, "").trim(),
+      apellidos: cols[2].replace(/"/g, "").trim(),
+      actividad: cols[3].replace(/"/g, "").trim()
+    };
+  }).filter(Boolean);
 }
 
 // 🔹 Cargar datos (ANTI-CACHÉ)
-fetch(sheetURL + "?t=" + new Date().getTime())
-  .then(res => res.text())
+fetch(sheetURL + "&t=" + new Date().getTime())
+  .then(res => {
+    if (!res.ok) throw new Error("No se pudo cargar el CSV");
+    return res.text();
+  })
   .then(text => {
-    const rows = text.split("\n").slice(1);
-    rows.forEach(row => {
-      const cols = row.split(",");
-      if (cols.length >= 4) {
-        data.push({
-          id: cols[0]?.trim(),
-          nombres: cols[1]?.trim(),
-          apellidos: cols[2]?.trim(),
-          actividad: cols[3]?.trim()
-        });
-      }
-    });
+    data = parseCSV(text);
     mostrarFechaActualizacion();
+
+    if (data.length === 0) {
+      document.getElementById("results").innerHTML =
+        "<div class='no-results'>No se cargaron datos desde el CSV</div>";
+    }
+  })
+  .catch(err => {
+    document.getElementById("results").innerHTML =
+      "<div class='no-results'>Error cargando datos</div>";
+    console.error(err);
   });
 
 // 🔍 Buscador
@@ -169,17 +188,17 @@ document.getElementById("search").addEventListener("input", function () {
   const results = document.getElementById("results");
   results.innerHTML = "";
 
-  if (value.length === 0) return;
+  if (!value || data.length === 0) return;
 
-  const searchNormalizado = normalizarTexto(value);
+  const search = normalizarTexto(value);
 
   const encontrados = data.filter(p =>
-    normalizarTexto(p.id).includes(searchNormalizado) ||
-    normalizarTexto(p.apellidos).includes(searchNormalizado)
+    normalizarTexto(p.id).includes(search) ||
+    normalizarTexto(p.apellidos).includes(search)
   );
 
   if (encontrados.length === 0) {
-    results.innerHTML = `<div class="no-results">No se encontraron resultados</div>`;
+    results.innerHTML = "<div class='no-results'>No se encontraron resultados</div>";
     return;
   }
 
