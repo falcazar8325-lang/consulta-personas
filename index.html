@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Consulta de Personas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+:root {
+  --primary: #1f3a5f;
+  --secondary: #f4f6f8;
+  --text: #333;
+}
+
+body {
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  margin: 0;
+  background: var(--secondary);
+  color: var(--text);
+}
+
+header {
+  background: var(--primary);
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+header p {
+  margin-top: 6px;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+main {
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
+}
+
+.search-box {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.search-box input {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.results {
+  margin-top: 20px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+.card strong {
+  display: block;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+
+.card span {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+footer {
+  text-align: center;
+  font-size: 12px;
+  color: #777;
+  margin-top: 40px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>Consulta de Personas</h1>
+  <p>Búsqueda por ID o Apellido</p>
+</header>
+
+<main>
+
+  <div class="search-box">
+    <input type="text" id="search" placeholder="Ingrese ID o Apellido">
+  </div>
+
+  <div class="results" id="results"></div>
+
+</main>
+
+<footer>
+  Consulta informativa · Datos actualizados automáticamente
+</footer>
+
+<script>
+const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRWRQbiejsRyHimtz4YLWiWo1_bLxyWqioatbRHwryXeVAhUuk8YCiLJXZnDCQgzs21ALGWNKWIAhAz/pub?gid=0&single=true&output=csv";
+let data = [];
+
+fetch(sheetURL)
+  .then(res => res.text())
+  .then(text => {
+    const rows = text.split("\n").slice(1);
+    rows.forEach(row => {
+      const cols = row.split(",");
+      if (cols.length >= 4) {
+        data.push({
+          id: cols[0],
+          nombres: cols[1],
+          apellidos: cols[2],
+          actividad: cols[3]
+        });
+      }
+    });
+  });
+
+document.getElementById("search").addEventListener("input", function () {
+  const value = this.value.toLowerCase();
+  const results = document.getElementById("results");
+  results.innerHTML = "";
+
+  if (value.length === 0) return;
+
+  data.filter(p =>
+    p.id.toLowerCase().includes(value) ||
+    p.apellidos.toLowerCase().includes(value)
+  ).forEach(p => {
+    results.innerHTML += `
+      <div class="card">
+        <strong>${p.nombres} ${p.apellidos}</strong>
+        <span><b>ID:</b> ${p.id}</span>
+        <span><b>Actividad económica:</b> ${p.actividad}</span>
+      </div>
+    `;
+  });
+});
+</script>
+
+</body>
+</html>
