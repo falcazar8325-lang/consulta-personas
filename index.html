@@ -22,7 +22,7 @@ body {
 header {
   background: var(--primary);
   color: #fff;
-  padding: 20px;
+  padding: 22px 16px;
   text-align: center;
 }
 
@@ -74,6 +74,7 @@ main {
   display: block;
   color: var(--primary);
   margin-bottom: 6px;
+  font-size: 16px;
 }
 
 .card span {
@@ -82,11 +83,18 @@ main {
   margin-bottom: 4px;
 }
 
+.no-results {
+  text-align: center;
+  color: #777;
+  margin-top: 20px;
+  font-size: 14px;
+}
+
 footer {
   text-align: center;
   font-size: 12px;
   color: #777;
-  margin-top: 40px;
+  margin: 40px 10px 20px;
 }
 </style>
 </head>
@@ -113,9 +121,20 @@ footer {
 </footer>
 
 <script>
+// 🔗 PEGA AQUÍ TU LINK CSV DE GOOGLE SHEETS
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRWRQbiejsRyHimtz4YLWiWo1_bLxyWqioatbRHwryXeVAhUuk8YCiLJXZnDCQgzs21ALGWNKWIAhAz/pub?gid=0&single=true&output=csv";
+
 let data = [];
 
+// 🔹 Función para ignorar tildes y mayúsculas
+function normalizarTexto(texto) {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+// 🔹 Cargar datos del Sheet
 fetch(sheetURL)
   .then(res => res.text())
   .then(text => {
@@ -124,26 +143,36 @@ fetch(sheetURL)
       const cols = row.split(",");
       if (cols.length >= 4) {
         data.push({
-          id: cols[0],
-          nombres: cols[1],
-          apellidos: cols[2],
-          actividad: cols[3]
+          id: cols[0]?.trim(),
+          nombres: cols[1]?.trim(),
+          apellidos: cols[2]?.trim(),
+          actividad: cols[3]?.trim()
         });
       }
     });
   });
 
+// 🔍 Buscador
 document.getElementById("search").addEventListener("input", function () {
-  const value = this.value.toLowerCase();
+  const value = this.value.trim();
   const results = document.getElementById("results");
   results.innerHTML = "";
 
   if (value.length === 0) return;
 
-  data.filter(p =>
-    p.id.toLowerCase().includes(value) ||
-    p.apellidos.toLowerCase().includes(value)
-  ).forEach(p => {
+  const searchNormalizado = normalizarTexto(value);
+
+  const encontrados = data.filter(p =>
+    normalizarTexto(p.id).includes(searchNormalizado) ||
+    normalizarTexto(p.apellidos).includes(searchNormalizado)
+  );
+
+  if (encontrados.length === 0) {
+    results.innerHTML = `<div class="no-results">No se encontraron resultados</div>`;
+    return;
+  }
+
+  encontrados.forEach(p => {
     results.innerHTML += `
       <div class="card">
         <strong>${p.nombres} ${p.apellidos}</strong>
