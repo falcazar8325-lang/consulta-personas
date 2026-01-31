@@ -122,20 +122,19 @@ footer {
 </footer>
 
 <script>
-// 🔗 TU LINK CSV (ESTÁ CORRECTO)
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRWRQbiejsRyHimtz4YLWiWo1_bLxyWqioatbRHwryXeVAhUuk8YCiLJXZnDCQgzs21ALGWNKWIAhAz/pub?gid=0&single=true&output=csv";
 
 let data = [];
 
-// 🔹 Normaliza texto (ignora tildes)
+// Quitar tildes y normalizar
 function normalizarTexto(texto) {
-  return texto
+  return (texto || "")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-// 🔹 Fecha / hora
+// Fecha / hora de carga
 function mostrarFechaActualizacion() {
   const ahora = new Date();
   document.getElementById("lastUpdate").innerText =
@@ -145,23 +144,26 @@ function mostrarFechaActualizacion() {
     ahora.toLocaleTimeString("es-PE");
 }
 
-// 🔹 PARSER CSV ROBUSTO
+// Parser CSV robusto
 function parseCSV(text) {
   const rows = text.trim().split(/\r?\n/);
   rows.shift(); // quitar encabezado
+
   return rows.map(row => {
     const cols = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-    if (!cols || cols.length < 4) return null;
+    if (!cols || cols.length < 5) return null;
+
     return {
       id: cols[0].replace(/"/g, "").trim(),
       nombres: cols[1].replace(/"/g, "").trim(),
       apellidos: cols[2].replace(/"/g, "").trim(),
-      actividad: cols[3].replace(/"/g, "").trim()
+      actividad: cols[3].replace(/"/g, "").trim(),
+      celular: cols[4].replace(/"/g, "").trim()
     };
   }).filter(Boolean);
 }
 
-// 🔹 Cargar datos (ANTI-CACHÉ)
+// Cargar datos (sin caché)
 fetch(sheetURL + "&t=" + new Date().getTime())
   .then(res => {
     if (!res.ok) throw new Error("No se pudo cargar el CSV");
@@ -173,7 +175,7 @@ fetch(sheetURL + "&t=" + new Date().getTime())
 
     if (data.length === 0) {
       document.getElementById("results").innerHTML =
-        "<div class='no-results'>No se cargaron datos desde el CSV</div>";
+        "<div class='no-results'>No se cargaron datos desde el archivo</div>";
     }
   })
   .catch(err => {
@@ -182,8 +184,9 @@ fetch(sheetURL + "&t=" + new Date().getTime())
     console.error(err);
   });
 
-// 🔍 Buscador
+// Buscador
 document.getElementById("search").addEventListener("input", function () {
+
   const value = this.value.trim();
   const results = document.getElementById("results");
   results.innerHTML = "";
@@ -198,7 +201,8 @@ document.getElementById("search").addEventListener("input", function () {
   );
 
   if (encontrados.length === 0) {
-    results.innerHTML = "<div class='no-results'>No se encontraron resultados</div>";
+    results.innerHTML =
+      "<div class='no-results'>No se encontraron resultados</div>";
     return;
   }
 
@@ -208,9 +212,11 @@ document.getElementById("search").addEventListener("input", function () {
         <strong>${p.nombres} ${p.apellidos}</strong>
         <span><b>ID:</b> ${p.id}</span>
         <span><b>Actividad económica:</b> ${p.actividad}</span>
+        <span><b>Celular(es):</b> ${p.celular || "-"}</span>
       </div>
     `;
   });
+
 });
 </script>
 
