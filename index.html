@@ -103,13 +103,18 @@ footer {
 
 <header>
   <h1>Consulta de Personas</h1>
-  <p>Ingrese el ID completo o un apellido</p>
+  <p>Ingrese su número de documento</p>
 </header>
 
 <main>
 
   <div class="search-box">
-    <input type="text" id="search" placeholder="Ejemplo: 005 o Campos">
+    <input
+      type="text"
+      id="search"
+      placeholder="Número de documento"
+      inputmode="numeric"
+    >
   </div>
 
   <div class="results" id="results"></div>
@@ -128,9 +133,7 @@ let data = [];
 
 function normalizarTexto(texto) {
   return (texto || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .toString()
     .trim();
 }
 
@@ -165,8 +168,12 @@ function parseCSV(text) {
   }).filter(Boolean);
 }
 
+// Carga de datos (sin caché)
 fetch(sheetURL + "&t=" + new Date().getTime())
-  .then(res => res.text())
+  .then(res => {
+    if (!res.ok) throw new Error("No se pudo cargar el CSV");
+    return res.text();
+  })
   .then(text => {
     data = parseCSV(text);
     mostrarFechaActualizacion();
@@ -178,37 +185,24 @@ fetch(sheetURL + "&t=" + new Date().getTime())
   });
 
 /* BUSCADOR:
-   - ID exacto
-   - o cualquier palabra del campo Apellidos
+   - SOLO número de documento
+   - coincidencia exacta
 */
 document.getElementById("search").addEventListener("input", function () {
 
-  const valueRaw = this.value.trim();
+  const valueRaw = normalizarTexto(this.value);
   const results = document.getElementById("results");
   results.innerHTML = "";
 
   if (!valueRaw || data.length === 0) return;
 
-  const search = normalizarTexto(valueRaw);
-
-  const encontrados = data.filter(p => {
-
-    // 1. ID exacto
-    if (normalizarTexto(p.id) === search) {
-      return true;
-    }
-
-    // 2. Cualquier palabra de los apellidos
-    const palabrasApellidos = normalizarTexto(p.apellidos)
-      .split(/\s+/);
-
-    return palabrasApellidos.includes(search);
-
-  });
+  const encontrados = data.filter(p =>
+    normalizarTexto(p.id) === valueRaw
+  );
 
   if (encontrados.length === 0) {
     results.innerHTML =
-      "<div class='no-results'>No se encontraron resultados</div>";
+      "<div class='no-results'>No se encontró información para el número ingresado</div>";
     return;
   }
 
@@ -216,7 +210,7 @@ document.getElementById("search").addEventListener("input", function () {
     results.innerHTML += `
       <div class="card">
         <strong>${p.nombres} ${p.apellidos}</strong>
-        <span><b>ID:</b> ${p.id}</span>
+        <span><b>N° documento:</b> ${p.id}</span>
         <span><b>Actividad económica:</b> ${p.actividad}</span>
         <span><b>Celular(es):</b> ${p.celular || "-"}</span>
       </div>
