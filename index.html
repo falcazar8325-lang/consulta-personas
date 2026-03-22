@@ -96,6 +96,30 @@ footer {
   color: #777;
   margin: 40px 10px 20px;
 }
+
+/* 🔥 ESTILOS DE EXPEDIENTE */
+.expediente {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.exp-verde {
+  background: #d4edda;
+  color: #155724;
+}
+
+.exp-rojo {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.exp-naranja {
+  background: #fff3cd;
+  color: #856404;
+}
 </style>
 </head>
 
@@ -144,17 +168,16 @@ function mostrarFechaActualizacion() {
     ahora.toLocaleTimeString("es-PE");
 }
 
-/* Parser CSV que respeta espacios y permite celular vacío */
+/* Parser CSV */
 function parseCSV(text) {
 
   const rows = text.trim().split(/\r?\n/);
-  rows.shift(); // quitar encabezado
+  rows.shift();
 
   return rows.map(row => {
 
     const cols = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
 
-    // Permitimos mínimo 4 columnas
     if (!cols || cols.length < 4) return null;
 
     return {
@@ -162,13 +185,16 @@ function parseCSV(text) {
       nombres: limpiar(cols[1].replace(/"/g, "")),
       apellidos: limpiar(cols[2].replace(/"/g, "")),
       actividad: limpiar(cols[3].replace(/"/g, "")),
-      celular: limpiar((cols[4] || "").replace(/"/g, ""))
+      celular: limpiar((cols[4] || "").replace(/"/g, "")),
+
+      // 🔥 NUEVA COLUMNA
+      expediente: limpiar((cols[5] || "").replace(/"/g, ""))
     };
 
   }).filter(Boolean);
 }
 
-// Cargar datos (sin caché)
+// Cargar datos
 fetch(sheetURL + "&t=" + new Date().getTime())
   .then(res => {
     if (!res.ok) throw new Error("No se pudo cargar el CSV");
@@ -184,10 +210,7 @@ fetch(sheetURL + "&t=" + new Date().getTime())
     console.error(err);
   });
 
-/* BUSCADOR
-   Solo por número de documento
-   Coincidencia exacta
-*/
+// Buscador
 document.getElementById("search").addEventListener("input", function () {
 
   const value = limpiar(this.value);
@@ -205,18 +228,38 @@ document.getElementById("search").addEventListener("input", function () {
   }
 
   encontrados.forEach(p => {
+
+    const estado = (p.expediente || "").toLowerCase().trim();
+
+    let claseEstado = "exp-naranja";
+
+    if (estado === "documentacion completa") {
+      claseEstado = "exp-verde";
+    } else if (estado === "no realizo 2do pago") {
+      claseEstado = "exp-rojo";
+    }
+
     results.innerHTML += `
       <div class="card">
         <strong>${p.nombres} ${p.apellidos}</strong>
         <span><b>N° documento:</b> ${p.id}</span>
         <span><b>Actividad económica:</b> ${p.actividad}</span>
         <span><b>Celular(es):</b> ${p.celular ? p.celular : "-"}</span>
+        <span>
+          <b>Expediente:</b> 
+          <span class="expediente ${claseEstado}">
+            ${p.expediente}
+          </span>
+        </span>
       </div>
     `;
   });
 
 });
 </script>
+
+</body>
+</html>
 
 </body>
 </html>
